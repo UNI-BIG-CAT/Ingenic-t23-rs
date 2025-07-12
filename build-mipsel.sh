@@ -12,9 +12,6 @@ rustup default nightly
 mkdir -p camera/target/mipsel-unknown-linux-gnu/debug
 chmod 755 camera/target/mipsel-unknown-linux-gnu/debug
 
-# 切换到 camera 目录
-# cd camera
-
 # 执行构建，使用 nightly 版本和 build-std
 cross +nightly build --target mipsel-unknown-linux-gnu -Z build-std=core,std,alloc,proc_macro
 
