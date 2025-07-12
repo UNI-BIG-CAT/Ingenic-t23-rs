@@ -1,0 +1,21 @@
+FROM ubuntu:22.04
+
+# 设置非交互模式
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 基础软件包
+RUN apt update && apt install -y \
+    curl \
+    ca-certificates \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Rust（最小化安装）
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# 验证安装
+RUN rustc --version
+
+WORKDIR /workspace
+CMD ["/bin/bash"] 
