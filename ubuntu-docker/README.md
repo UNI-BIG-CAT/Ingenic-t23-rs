@@ -1,106 +1,135 @@
-# MIPS 交叉编译环境
+# 君正芯片 Rust 交叉编译环境
 
-这个配置提供了在 Docker 容器中进行 MIPS 架构 Rust 交叉编译的环境。
+## 问题描述
 
-## 常见问题
-
-### 错误代码 137 (SIGKILL)
-如果遇到 `The command '/bin/sh -c curl https://sh.rustup.rs -sSf | sh -s -- -y' returned a non-zero code: 137` 错误，这通常是由于：
-
-1. **内存不足** - Docker 构建过程中内存耗尽
-2. **网络问题** - 下载 Rust 安装包失败
-3. **构建超时** - 构建过程超时被终止
-
-### 解决方案
-
-#### 方案 1：使用测试脚本（推荐）
-```bash
-./test-build.sh
+在君正 MIPS 芯片上运行 Rust 程序时遇到错误：
 ```
-选择 "1" 进行最小化测试，如果成功再尝试完整构建。
-
-#### 方案 2：清理重建
-```bash
-./clean-build.sh
+./camera: line 2: syntax error: unexpected "("
 ```
 
-#### 方案 3：手动故障排除
+## 问题原因
+
+这是一个典型的交叉编译架构不匹配问题：
+
+1. **架构不匹配**: 君正芯片使用 MIPS little endian (mipsel) 架构
+2. **编译目标错误**: 之前配置使用的是 big endian (`mips-unknown-linux-gnu`)
+3. **二进制文件架构错误**: 编译的程序无法在目标设备上运行
+
+## 解决方案
+
+### 1. 环境配置
+
+已修正 Docker 配置文件，使用正确的目标架构：
+
+- **目标架构**: `mipsel-unknown-linux-gnu` (little endian)
+- **交叉编译器**: `mipsel-linux-gnu-gcc`
+- **备选方案**: `mipsel-unknown-linux-musl` (静态链接，更好兼容性)
+
+### 2. 构建步骤
+
+#### 方法一：使用专用构建脚本
+
 ```bash
-# 清理所有相关资源
-docker-compose down --remove-orphans
-docker rmi -f ubuntu-docker_rust-mips
-docker builder prune -f
-
-# 重新构建
-docker-compose build --no-cache
-```
-
-## 使用方法
-
-### 快速开始
-```bash
-# 测试构建
-./test-build.sh
-
-# 如果测试成功，启动容器
-docker-compose up -d
-docker exec -it rust-mipsel-dev bash
-```
-
-### 手动构建和运行
-```bash
+# 1. 构建 Docker 环境
 docker-compose build
+
+# 2. 启动容器
 docker-compose up -d
+
+# 3. 进入容器
 docker exec -it rust-mipsel-dev bash
 
-# 在容器中编译
+# 4. 运行君正芯片专用构建脚本
+./build-for-ingenic.sh
+```
+
+#### 方法二：手动编译
+
+```bash
+# 在 Docker 容器中
 cd /workspace/camera
-cargo build --target mips-unknown-linux-gnu
+
+# 设置环境变量
+export CC_mipsel_unknown_linux_gnu=mipsel-linux-gnu-gcc
+export CXX_mipsel_unknown_linux_gnu=mipsel-linux-gnu-g++
+export AR_mipsel_unknown_linux_gnu=mipsel-linux-gnu-ar
+export CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_GNU_LINKER=mipsel-linux-gnu-gcc
+
+# 编译（使用静态链接）
+RUSTFLAGS="-C target-feature=+crt-static" cargo build --target mipsel-unknown-linux-gnu --release
 ```
 
-## 目录挂载
-
-需要在 docker-compose.yml 中设置 `VOLUME_PATH` 环境变量：
+### 3. 验证编译结果
 
 ```bash
-export VOLUME_PATH=/d/code/camera_rs
-# 或者在 .env 文件中设置
-echo "VOLUME_PATH=/d/code/camera_rs" > .env
+# 检查二进制文件架构
+file target/mipsel-unknown-linux-gnu/release/camera
+
+# 预期输出应该包含:
+# ELF 32-bit LSB executable, MIPS, MIPS32 rel2 processor
 ```
 
-## 验证编译结果
-
-在容器中编译后，可以使用 `file` 命令检查生成的二进制文件：
+### 4. 部署到君正设备
 
 ```bash
-file target/mips-unknown-linux-gnu/debug/camera
-```
+# 1. 复制二进制文件到设备
+scp target/mipsel-unknown-linux-gnu/release/camera user@device:/path/to/camera
 
-应该显示 MIPS 架构的二进制文件。
+# 2. 在设备上添加执行权限
+chmod +x camera
+
+# 3. 运行
+./camera
+```
 
 ## 故障排除
 
-### 构建失败
-1. 使用 `./test-build.sh` 进行分步测试
-2. 检查 Docker 内存配置
-3. 确保网络连接正常
-4. 使用 `./clean-build.sh` 清理重建
+### 如果仍然遇到问题
 
-### 内存不足
-- 关闭其他占用内存的应用
-- 增加 Docker 的内存限制
-- 使用 `Dockerfile.minimal` 进行最小化构建
+1. **检查设备架构**:
+   ```bash
+   # 在君正设备上运行
+   uname -m  # 应该显示 mips
+   ldd --version  # 检查 glibc 版本
+   ```
 
-### 网络问题
-- 检查防火墙设置
-- 尝试使用不同的网络
-- 考虑使用镜像加速器
+2. **使用 musl 目标**（推荐）:
+   ```bash
+   # 如果 glibc 版本太老，使用 musl 静态链接
+   rustup target add mipsel-unknown-linux-musl
+   cargo build --target mipsel-unknown-linux-musl --release
+   ```
 
-## 配置文件说明
+3. **检查依赖项**:
+   ```bash
+   # 确保所有依赖项都支持 MIPS 架构
+   cargo tree
+   ```
 
-- `Dockerfile` - 主要的构建文件
-- `Dockerfile.minimal` - 最小化测试用的构建文件
-- `docker-compose.yml` - 容器编排配置
-- `.env` - 环境变量配置
-- `clean-build.sh` - 清理重建脚本
-- `test-build.sh` - 分步测试脚本 
+### 常见错误及解决方法
+
+| 错误信息 | 原因 | 解决方法 |
+|---------|------|----------|
+| `syntax error: unexpected "("` | 架构不匹配 | 使用正确的 mipsel 目标编译 |
+| `cannot execute binary file` | 二进制格式错误 | 确认使用 mipsel-unknown-linux-gnu |
+| `version 'GLIBC_X.X' not found` | glibc 版本过老 | 使用 musl 目标或静态链接 |
+
+## 技术详情
+
+- **目标设备**: 君正芯片 (Linux Ingenic-g1_1 3.10.14)
+- **架构**: MIPS little endian
+- **编译环境**: Ubuntu 22.04 + Rust + mipsel-linux-gnu 工具链
+- **推荐目标**: `mipsel-unknown-linux-musl`（最佳兼容性）
+
+## 快速命令参考
+
+```bash
+# 清理并重新构建
+./clean-build.sh
+
+# 测试构建
+./test-build.sh
+
+# 专用君正芯片构建
+./build-for-ingenic.sh
+``` 

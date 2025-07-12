@@ -39,7 +39,7 @@ if [ $? -eq 0 ]; then
     echo "docker exec -it rust-mipsel-dev bash"
     echo ""
     echo "在容器中测试编译："
-    echo "cd /workspace/camera && cargo build --target mips-unknown-linux-gnu"
+echo "cd /workspace/camera && cargo build --target mipsel-unknown-linux-gnu"
 else
     echo ""
     echo "❌ 构建失败！"

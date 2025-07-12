@@ -5,6 +5,7 @@ services:
     build:
       context: .         # 当前目录，确保这里有 Dockerfile
       dockerfile: Dockerfile
+    network_mode: host
     container_name: rust-mipsel-dev
     volumes:
       - ${VOLUME_PATH}/rust-mipsel-data:/workspace

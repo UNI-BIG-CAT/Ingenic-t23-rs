@@ -1,5 +1,10 @@
 [target.mipsel-unknown-linux-gnu]
 linker = "mipsel-linux-gnu-gcc"
 
-[target.mips-unknown-linux-gnu]
-linker = "mips-linux-gnu-gcc" 
+[target.mipsel-unknown-linux-musl]
+linker = "mipsel-linux-gnu-gcc"
+
+[env]
+CC_mipsel_unknown_linux_gnu = "mipsel-linux-gnu-gcc"
+CXX_mipsel_unknown_linux_gnu = "mipsel-linux-gnu-g++"
+AR_mipsel_unknown_linux_gnu = "mipsel-linux-gnu-ar" 
