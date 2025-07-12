@@ -6,17 +6,18 @@
 
 ```
 camera-rs-code/
-├── camera/                          # 主要的 Rust 项目
-│   ├── Cargo.toml                   # 项目配置文件
-│   ├── Cargo.lock                   # 依赖锁定文件
-│   ├── Cross.toml                   # Cross 交叉编译配置
-│   ├── build-mipsel.sh              # 构建脚本
-│   ├── src/
-│   │   └── main.rs                  # 主程序入口
-│   └── target/
-│       └── mipsel-unknown-linux-gnu/
-│           └── release/
-│               └── camera           # 最终可执行文件
+├── Cargo.toml                       # 项目配置文件
+├── Cargo.lock                       # 依赖锁定文件
+├── Cross.toml                       # Cross 交叉编译配置
+├── build-mipsel.sh                  # 构建脚本
+├── src/
+│   └── main.rs                      # 主程序入口
+├── target/
+│   └── mipsel-unknown-linux-gnu/
+│       └── release/
+│           └── camera               # 最终可执行文件
+├── camera/                          # 构建缓存目录
+│   └── target/                      # 历史构建缓存
 ├── ubuntu-docker/                   # Docker 相关文件
 │   ├── Dockerfile
 │   ├── docker-compose.yml
@@ -38,7 +39,7 @@ camera-rs-code/
 
 ## ⚙️ 配置文件
 
-### camera/Cargo.toml
+### Cargo.toml
 
 ```toml
 [package]
@@ -52,7 +53,7 @@ lto = true
 [dependencies]
 ```
 
-### camera/Cross.toml
+### Cross.toml
 
 ```toml
 [build]
@@ -86,10 +87,7 @@ cargo install cross --git https://github.com/cross-rs/cross
 # 设置静态链接环境变量
 export RUSTFLAGS="-C target-feature=+crt-static"
 
-# 切换到项目目录
-cd camera
-
-# 执行交叉编译
+# 在项目根目录执行交叉编译
 cross +nightly build --target mipsel-unknown-linux-gnu -Z build-std=core,std,alloc --release
 ```
 
@@ -111,8 +109,8 @@ chmod +x build-mipsel.sh
 
 **解决方案**: 确保目标目录有正确的权限
 ```bash
-mkdir -p camera/target/mipsel-unknown-linux-gnu/debug
-chmod 755 camera/target/mipsel-unknown-linux-gnu/debug
+mkdir -p target/mipsel-unknown-linux-gnu/debug
+chmod 755 target/mipsel-unknown-linux-gnu/debug
 ```
 
 ### 2. GLIBC 版本不匹配
@@ -144,7 +142,7 @@ cross +nightly build --target mipsel-unknown-linux-gnu -Z build-std=core,std,all
 ### 可执行文件位置
 
 ```
-camera/target/mipsel-unknown-linux-gnu/release/camera
+target/mipsel-unknown-linux-gnu/release/camera
 ```
 
 ### 文件特点
@@ -158,7 +156,7 @@ camera/target/mipsel-unknown-linux-gnu/release/camera
 
 ```bash
 # 复制到测试目录
-cp camera/target/mipsel-unknown-linux-gnu/release/camera ./camera-rs-test
+cp target/mipsel-unknown-linux-gnu/release/camera ./camera-rs-test
 
 # 传输到目标设备
 scp camera-rs-test user@device:/tmp/
