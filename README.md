@@ -1,4 +1,4 @@
-# Camera RS - MIPS 交叉编译项目
+# Ingenic-t23 - MIPS 交叉编译项目
 
 本项目演示了如何为 MIPS 架构的嵌入式设备（如 Ingenic 设备）交叉编译 Rust 程序。
 
