@@ -1,0 +1,5 @@
+[build]
+default-target = "mipsel-unknown-linux-gnu"
+
+[target.mipsel-unknown-linux-gnu]
+build-std = ["core", "std", "alloc", "proc_macro"] 
