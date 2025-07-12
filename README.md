@@ -76,6 +76,8 @@ rustup component add rust-src
 
 # 安装 cross 工具
 cargo install cross
+# 或者
+cargo install cross --git https://github.com/cross-rs/cross
 ```
 
 ### 2. 执行编译
